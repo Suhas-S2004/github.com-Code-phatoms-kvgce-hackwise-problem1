@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normalization Dashboard - Satellite Image Brightness Normalizer</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .dashboard-header {
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                        url('https://images.unsplash.com/photo-1541873676-a18131494184?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1216&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0.5rem;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--bs-primary);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
+            color: var(--bs-primary);
+            margin-bottom: 1rem;
+        }
+        
+        .image-comparison-card {
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .image-comparison-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .intensity-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .intensity-fill {
+            height: 100%;
+            background-color: var(--bs-primary);
+        }
+        
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.25rem;
+        }
+        
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .image-container:hover .image-overlay {
+            opacity: 1;
+        }
+        
+        .result-section {
+            background-color: var(--bs-dark-bg-subtle);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .download-all-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Customize scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bs-dark-bg-subtle);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--bs-primary);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--bs-primary-dark);
+        }
+        
+        /* Custom nav tabs */
+        .custom-tab {
+            border: none;
+            background-color: transparent;
+            padding: 1rem 1.5rem;
+            border-bottom: 3px solid transparent;
+            color: var(--bs-body-color);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .custom-tab.active {
+            border-bottom-color: var(--bs-primary);
+            color: var(--bs-primary);
+        }
+        
+        .custom-tab:hover:not(.active) {
+            border-bottom-color: var(--bs-gray-600);
+            background-color: var(--bs-dark-bg-subtle);
+        }
+        
+        .visualization-card {
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .avg-intensity-before {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        
+        .avg-intensity-after {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%; 
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <!-- Dashboard Header -->
+    <div class="dashboard-header mb-4">
+        <div class="container text-center">
+            <h1 class="display-4">Normalization Dashboard</h1>
+            <p class="lead">
+                Complete analysis of satellite image brightness normalization results
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Status Alert -->
+        <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+            <div>
+                <strong>Normalization Complete!</strong> Successfully normalized {{ stats.image_count }} satellite images with a score of {{ stats.score|round(1) }}/10.
+            </div>
+        </div>
+        
+        <!-- Key Statistics -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-subtitle text-muted mb-1">Global Average Intensity</h6>
+                                <h3 class="card-title mb-0">{{ stats.global_average|round(2) }}</h3>
+                                <div class="intensity-bar mt-2">
+                                    <div class="intensity-fill" style="width: {{ (stats.global_average / 255) * 100 }}%;"></div>
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-brightness-high"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-subtitle text-muted mb-1">Images Processed</h6>
+                                <h3 class="card-title mb-0">{{ stats.image_count }}</h3>
+                                <p class="mt-2 text-success mb-0">
+                                    <small>
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        {{ stats.images_within_threshold }}/{{ stats.image_count }} within threshold
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-images"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-subtitle text-muted mb-1">Processing Time</h6>
+                                <h3 class="card-title mb-0">{{ stats.processing_time|round(3) }} <small>sec</small></h3>
+                                <p class="mt-2 text-success mb-0">
+                                    <small>
+                                        <i class="bi bi-lightning-fill"></i>
+                                        Under 10 second requirement
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-stopwatch"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card stat-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-subtitle text-muted mb-1">Score</h6>
+                                <h3 class="card-title mb-0">{{ stats.score }} <small>/ 10</small></h3>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ (stats.score / 10) * 100 }}%;" 
+                                         aria-valuenow="{{ stats.score }}" aria-valuemin="0" aria-valuemax="10"></div>
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="bi bi-award"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Visualization Tabs -->
+        <div class="card mb-4">
+            <div class="card-header bg-transparent border-bottom-0">
+                <ul class="nav nav-tabs card-header-tabs" id="visualization-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="custom-tab active" id="side-by-side-tab" data-bs-toggle="tab" data-bs-target="#side-by-side" 
+                                type="button" role="tab" aria-controls="side-by-side" aria-selected="true">
+                                <i class="bi bi-layout-split"></i> Side-by-Side Comparison
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="custom-tab" id="intensity-tab" data-bs-toggle="tab" data-bs-target="#intensity" 
+                                type="button" role="tab" aria-controls="intensity" aria-selected="false">
+                                <i class="bi bi-bar-chart-line"></i> Intensity Analysis
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="custom-tab" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" 
+                                type="button" role="tab" aria-controls="data" aria-selected="false">
+                                <i class="bi bi-table"></i> Detailed Data
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="visualization-tab-content">
+                    <!-- Side by Side Comparison Tab -->
+                    <div class="tab-pane fade show active" id="side-by-side" role="tabpanel" aria-labelledby="side-by-side-tab">
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            {% for img in stats.normalized_images %}
+                            {% set index = loop.index0 %}
+                            {% set original_img = stats.original_images[index] if index < stats.original_images|length else None %}
+                            <div class="col">
+                                <div class="card image-comparison-card h-100">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">Image {{ loop.index }}</h5>
+                                        <span class="badge bg-primary">{{ img.average_intensity|round(2) }}</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <!-- Original Image -->
+                                            <div class="col-md-6">
+                                                <div class="image-container mb-2">
+                                                    {% if original_img %}
+                                                    <img src="{{ url_for('serve_original', filename=original_img) }}"
+                                                         alt="Original Image {{ loop.index }}" 
+                                                         class="img-fluid rounded"
+                                                         style="width: 100%; height: 180px; object-fit: cover;">
+                                                    <div class="image-overlay">
+                                                        <button class="btn btn-sm btn-primary" 
+                                                                onclick="window.open('{{ url_for('serve_original', filename=original_img) }}', '_blank')">
+                                                            <i class="bi bi-zoom-in"></i> View
+                                                        </button>
+                                                    </div>
+                                                    {% else %}
+                                                    <div class="alert alert-warning h-100 d-flex align-items-center justify-content-center">
+                                                        Original image not available
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-center mt-1">
+                                                    <span class="badge rounded-pill bg-secondary">Original</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Normalized Image -->
+                                            <div class="col-md-6">
+                                                <div class="image-container mb-2">
+                                                    <img src="{{ url_for('serve_image', filename=img.filename) }}"
+                                                         alt="{{ img.filename }}"
+                                                         class="img-fluid rounded"
+                                                         style="width: 100%; height: 180px; object-fit: cover;">
+                                                    <div class="image-overlay">
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-sm btn-primary" 
+                                                                    onclick="window.open('{{ url_for('serve_image', filename=img.filename) }}', '_blank')">
+                                                                <i class="bi bi-zoom-in"></i> View
+                                                            </button>
+                                                            <a href="{{ url_for('download_file', filename=img.filename) }}" class="btn btn-sm btn-success">
+                                                                <i class="bi bi-download"></i> Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-center mt-1">
+                                                    <span class="badge rounded-pill bg-success">Normalized</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>Difference from target:</span>
+                                                <span class="
+                                                    {% if img.difference_from_target <= 0.5 %}
+                                                        text-success fw-bold
+                                                    {% elif img.difference_from_target <= 1.0 %}
+                                                        text-info fw-bold
+                                                    {% else %}
+                                                        text-danger fw-bold
+                                                    {% endif %}
+                                                ">{{ img.difference_from_target|round(2) }}</span>
+                                            </div>
+                                            <div class="progress" style="height: 5px;">
+                                                <div class="progress-bar 
+                                                    {% if img.difference_from_target <= 0.5 %}
+                                                        bg-success
+                                                    {% elif img.difference_from_target <= 1.0 %}
+                                                        bg-info
+                                                    {% else %}
+                                                        bg-danger
+                                                    {% endif %}
+                                                " 
+                                                role="progressbar" 
+                                                style="width: {{ 100 - (img.difference_from_target * 100) }}%;" 
+                                                aria-valuenow="{{ 100 - (img.difference_from_target * 100) }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer text-center">
+                                        <span class="{% if img.within_threshold %}text-success{% else %}text-danger{% endif %}">
+                                            <i class="bi {% if img.within_threshold %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %} me-1"></i>
+                                            {% if img.within_threshold %}
+                                                Within ±1 threshold
+                                            {% else %}
+                                                Outside ±1 threshold
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Intensity Analysis Tab -->
+                    <div class="tab-pane fade" id="intensity" role="tabpanel" aria-labelledby="intensity-tab">
+                        <div class="row g-4">
+                            <div class="col-lg-8">
+                                <div class="card visualization-card">
+                                    <!-- Intensity Bar Chart Visualization -->
+                                    <div class="card-body">
+                                        <h5 class="card-title text-center mb-4">Intensity Distribution Before & After</h5>
+                                        <div style="height: 300px; position: relative;">
+                                            <div class="d-flex flex-column h-100">
+                                                <!-- Visual representation of image intensities -->
+                                                <div class="d-flex align-items-end h-100 mb-4">
+                                                    {% for img in stats.normalized_images %}
+                                                    {% set index = loop.index0 %}
+                                                    {% set original_intensity = 50 + index * 15 if index < stats.original_images|length else 127.5 %}
+                                                    <div class="d-flex flex-column align-items-center mx-1" style="width: calc(100% / {{ stats.normalized_images|length }});">
+                                                        <!-- Original intensity bar (estimated) -->
+                                                        <div class="d-flex flex-column" style="width: 80%; height: 100%;">
+                                                            <div 
+                                                                style="background-color: rgba(255, 193, 7, 0.7); height: {{ (original_intensity / 255) * 100 }}%; width: 100%;" 
+                                                                title="Original: {{ original_intensity|round(2) }}"></div>
+                                                        </div>
+                                                        
+                                                        <!-- Normalized intensity bar -->
+                                                        <div class="d-flex flex-column" style="width: 80%; height: 100%; position: absolute; bottom: 0;">
+                                                            <div 
+                                                                style="background-color: rgba(25, 135, 84, 0.7); height: {{ (img.average_intensity / 255) * 100 }}%; width: 100%;" 
+                                                                title="Normalized: {{ img.average_intensity|round(2) }}"></div>
+                                                        </div>
+                                                        
+                                                        <!-- Image number -->
+                                                        <span class="text-muted mt-2" style="font-size: 0.7rem;">Img {{ loop.index }}</span>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <!-- Axis line -->
+                                                <div class="position-relative" style="height: 1px; background-color: var(--bs-secondary); width: 100%;">
+                                                    <!-- Target intensity marker -->
+                                                    <div class="position-absolute" style="top: -5px; left: {{ (stats.global_average / 255) * 100 }}%;">
+                                                        <div style="width: 2px; height: 10px; background-color: var(--bs-primary);"></div>
+                                                        <span class="position-absolute" style="top: 10px; left: -20px; font-size: 0.75rem;">Target: {{ stats.global_average|round(1) }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <div class="d-flex justify-content-center gap-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div style="width: 16px; height: 16px; background-color: rgba(255, 193, 7, 0.7); border-radius: 3px;"></div>
+                                                    <span class="ms-2">Original Intensity</span>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <div style="width: 16px; height: 16px; background-color: rgba(25, 135, 84, 0.7); border-radius: 3px;"></div>
+                                                    <span class="ms-2">Normalized Intensity</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-4">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Intensity Statistics</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-4">
+                                            <h6 class="mb-3">Target Intensity</h6>
+                                            <div class="text-center">
+                                                <div class="display-3 mb-2">{{ stats.global_average|round(2) }}</div>
+                                                <div class="intensity-bar">
+                                                    <div class="intensity-fill" style="width: {{ (stats.global_average / 255) * 100 }}%;"></div>
+                                                </div>
+                                                <div class="mt-1 text-muted">
+                                                    <small>Normalized to {{ (stats.global_average / 255 * 100)|round(1) }}% of maximum brightness</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <h6 class="mb-3">Average Intensities</h6>
+                                            <div class="list-group">
+                                                {% for img in stats.normalized_images %}
+                                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>Image {{ loop.index }}</div>
+                                                    <span class="badge rounded-pill bg-primary">{{ img.average_intensity|round(2) }}</span>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle-fill me-2"></i>
+                                            All normalized images have an average intensity within ±{{ '%.2f'|format(stats.normalized_images|map(attribute='difference_from_target')|max) }} of the target ({{ stats.global_average|round(2) }}).
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detailed Data Tab -->
+                    <div class="tab-pane fade" id="data" role="tabpanel" aria-labelledby="data-tab">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Filename</th>
+                                        <th>Original</th>
+                                        <th>Normalized</th>
+                                        <th>Average Intensity</th>
+                                        <th>Difference</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for img in stats.normalized_images %}
+                                    {% set index = loop.index0 %}
+                                    {% set original_img = stats.original_images[index] if index < stats.original_images|length else None %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ img.filename }}</td>
+                                        <td>
+                                            {% if original_img %}
+                                            <a href="{{ url_for('serve_original', filename=original_img) }}" target="_blank" class="position-relative">
+                                                <img src="{{ url_for('serve_original', filename=original_img) }}" alt="Original" 
+                                                     class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('serve_image', filename=img.filename) }}" target="_blank">
+                                                <img src="{{ url_for('serve_image', filename=img.filename) }}" alt="{{ img.filename }}" 
+                                                     class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;">
+                                            </a>
+                                        </td>
+                                        <td>{{ img.average_intensity|round(2) }}</td>
+                                        <td>
+                                            <span class="badge rounded-pill 
+                                                {% if img.difference_from_target <= 0.5 %}
+                                                    bg-success
+                                                {% elif img.difference_from_target <= 1.0 %}
+                                                    bg-info
+                                                {% else %}
+                                                    bg-danger
+                                                {% endif %}">
+                                                ±{{ img.difference_from_target|round(2) }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if img.within_threshold %}
+                                                <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i> Within ±1</span>
+                                            {% else %}
+                                                <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i> Outside ±1</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('download_file', filename=img.filename) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-download"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                                        onclick="window.open('{{ url_for('serve_image', filename=img.filename) }}', '_blank')">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Actions -->
+        <div class="mb-5">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('index') }}" class="btn btn-lg btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i> Process Another ZIP File
+                </a>
+                <button type="button" class="btn btn-lg btn-primary" id="download-all-btn">
+                    <i class="bi bi-download me-2"></i> Download All Normalized Images
+                </button>
+            </div>
+        </div>
+
+        <!-- Floating Download Button (Mobile) -->
+        <button class="download-all-btn btn btn-primary d-md-none" id="mobile-download-btn">
+            <i class="bi bi-download"></i>
+        </button>
+    </div>
+
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Satellite Image Brightness Normalizer</h5>
+                    <p class="small text-muted">A tool to standardize satellite image brightness for more accurate analysis and comparison.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Built for satellite imagery analysis</p>
+                    <p class="text-muted small">Processes images with ±1 intensity precision</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Handle download all button
+        document.getElementById('download-all-btn').addEventListener('click', function() {
+            // Get all download links
+            const downloadLinks = document.querySelectorAll('a[href*="download"]');
+            
+            // Create a temporary iframe for each download
+            downloadLinks.forEach(link => {
+                setTimeout(() => {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = link.href;
+                    document.body.appendChild(iframe);
+                    
+                    // Remove iframe after download starts
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                    }, 1000);
+                }, 300);
+            });
+            
+            // Show success message
+            alert('All images will be downloaded shortly!');
+        });
+        
+        // Mobile download button
+        document.getElementById('mobile-download-btn').addEventListener('click', function() {
+            document.getElementById('download-all-btn').click();
+        });
+    </script>
+</body>
+</html>

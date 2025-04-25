@@ -103,7 +103,8 @@ def upload_file():
                     'original_images': original_files
                 }
             
-            return render_template('results.html', 
+            # Use the new dashboard template for better visualization
+            return render_template('results_dashboard.html', 
                                   stats=result_data, 
                                   output_dir='output',
                                   original_dir='original')
