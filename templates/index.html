@@ -21,6 +21,21 @@
                             Upload a ZIP file containing grayscale PNG images to begin.
                         </p>
                         
+                        <div class="alert alert-info">
+                            <h5>Input Requirements:</h5>
+                            <ul>
+                                <li>A ZIP file containing 10 grayscale PNG images</li>
+                                <li>Each image should be 256x256 pixels, 8-bit depth (0-255)</li>
+                                <li>Files should be named image1.png through image10.png</li>
+                            </ul>
+                            <h5>Output:</h5>
+                            <ul>
+                                <li>10 normalized grayscale PNGs with same dimensions</li>
+                                <li>Each image will have an average intensity within ±1 of the global average</li>
+                                <li>Processing completes in under 10 seconds</li>
+                            </ul>
+                        </div>
+                        
                         {% with messages = get_flashed_messages() %}
                             {% if messages %}
                                 {% for message in messages %}
@@ -37,6 +52,11 @@
                                 <label for="file" class="form-label">Select a ZIP file containing satellite images</label>
                                 <input type="file" class="form-control" id="file" name="file" accept=".zip" required>
                                 <div class="form-text">The ZIP file should contain grayscale PNG images (e.g., image1.png to image10.png)</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="target_intensity" class="form-label">Target Intensity (Optional)</label>
+                                <input type="number" class="form-control" id="target_intensity" name="target_intensity" min="0" max="255" step="0.1" placeholder="Leave blank to use global average">
+                                <div class="form-text">Specify a target intensity between 0-255, or leave blank to use the global average</div>
                             </div>
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">Upload and Normalize</button>

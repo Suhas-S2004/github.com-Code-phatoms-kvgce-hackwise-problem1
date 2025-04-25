@@ -39,6 +39,19 @@ def upload_file():
         flash('No selected file')
         return redirect(request.url)
     
+    # Check for target intensity parameter
+    target_intensity = None
+    if request.form.get('target_intensity'):
+        try:
+            target_intensity = float(request.form.get('target_intensity'))
+            if target_intensity < 0 or target_intensity > 255:
+                flash('Target intensity must be between 0 and 255')
+                return redirect(request.url)
+            logger.info(f"Using specified target intensity: {target_intensity}")
+        except ValueError:
+            flash('Invalid target intensity value. Please enter a valid number.')
+            return redirect(request.url)
+    
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -52,7 +65,8 @@ def upload_file():
         # Process the file
         normalizer = SatelliteImageNormalizer(
             zip_path=file_path,
-            output_dir=output_dir
+            output_dir=output_dir,
+            target_intensity=target_intensity
         )
         
         success, result, saved_paths = normalizer.process_all()

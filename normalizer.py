@@ -155,27 +155,53 @@ class SatelliteImageNormalizer:
     def process_all(self):
         """Run the complete normalization process."""
         try:
+            import time
+            start_time = time.time()
+            
             self.extract_images()
             self.load_images()
             self.calculate_global_average()
             normalized_images = self.normalize_images()
             saved_paths = self.save_normalized_images(normalized_images)
             
+            end_time = time.time()
+            processing_time = end_time - start_time
+            
             # Calculate and return statistics
             stats = {
                 "global_average": self.global_avg,
                 "image_count": len(self.images),
+                "processing_time": processing_time,
                 "normalized_images": []
             }
+            
+            # Verify all images are within target range (±1)
+            images_within_threshold = 0
+            target = self.target_intensity if self.target_intensity is not None else self.global_avg
             
             for i, img in enumerate(normalized_images):
                 img_array = np.array(img)
                 avg_intensity = np.mean(img_array)
+                difference = abs(avg_intensity - target)
+                
+                # Check if within threshold
+                within_threshold = difference <= 1.0
+                if within_threshold:
+                    images_within_threshold += 1
+                
                 stats["normalized_images"].append({
                     "filename": f"normalized_image{i+1}.png",
                     "average_intensity": avg_intensity,
-                    "difference_from_target": abs(avg_intensity - self.global_avg)
+                    "difference_from_target": difference,
+                    "within_threshold": within_threshold
                 })
+            
+            # Add score calculation as per requirements
+            stats["images_within_threshold"] = images_within_threshold
+            stats["score"] = (images_within_threshold / len(normalized_images)) * 10 if normalized_images else 0
+            
+            logger.info(f"Processing completed in {processing_time:.2f} seconds")
+            logger.info(f"Score: {stats['score']:.1f}/10 ({images_within_threshold}/{len(normalized_images)} images within threshold)")
             
             return True, stats, saved_paths
         

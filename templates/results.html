@@ -21,7 +21,17 @@
                             <h4 class="alert-heading">Normalization Complete!</h4>
                             <p>Successfully normalized {{ stats.image_count }} satellite images.</p>
                             <hr>
-                            <p class="mb-0">Global Average Intensity: <strong>{{ stats.global_average|round(2) }}</strong></p>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-0">Global Average Intensity: <strong>{{ stats.global_average|round(2) }}</strong></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0">Processing Time: <strong>{{ stats.processing_time|round(2) }} seconds</strong></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0">Score: <strong>{{ stats.score|round(1) }}/10</strong> ({{ stats.images_within_threshold }}/{{ stats.image_count }} images within threshold)</p>
+                                </div>
+                            </div>
                         </div>
                         
                         <h4 class="mt-4 mb-3">Normalized Images</h4>
@@ -34,6 +44,7 @@
                                         <th>Filename</th>
                                         <th>Average Intensity</th>
                                         <th>Difference</th>
+                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -53,6 +64,13 @@
                                                 <span class="badge bg-warning">{{ img.difference_from_target|round(2) }}</span>
                                             {% else %}
                                                 <span class="badge bg-success">{{ img.difference_from_target|round(2) }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if img.within_threshold %}
+                                                <span class="badge bg-success">Within ±1</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Outside ±1</span>
                                             {% endif %}
                                         </td>
                                         <td>
