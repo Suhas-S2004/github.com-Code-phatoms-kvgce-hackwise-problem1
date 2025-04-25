@@ -34,8 +34,91 @@
                             </div>
                         </div>
                         
-                        <h4 class="mt-4 mb-3">Normalized Images</h4>
+                        <h4 class="mt-4 mb-3">Image Comparison</h4>
+                        <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+                            {% for img in stats.normalized_images %}
+                            {% set index = loop.index0 %}
+                            {% set original_img = stats.original_images[index] if index < stats.original_images|length else None %}
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">Image {{ loop.index }}</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <!-- Original Image -->
+                                            <div class="col-md-6">
+                                                <div class="text-center mb-2">
+                                                    <h6>Original</h6>
+                                                    {% if original_img %}
+                                                    <img src="{{ url_for('serve_original', filename=original_img) }}"
+                                                         alt="Original Image {{ loop.index }}" 
+                                                         class="img-fluid img-thumbnail"
+                                                         style="max-height: 200px;">
+                                                    {% else %}
+                                                    <div class="alert alert-warning">
+                                                        Original image not available
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <!-- Normalized Image -->
+                                            <div class="col-md-6">
+                                                <div class="text-center mb-2">
+                                                    <h6>Normalized</h6>
+                                                    <img src="{{ url_for('serve_image', filename=img.filename) }}"
+                                                         alt="{{ img.filename }}"
+                                                         class="img-fluid img-thumbnail"
+                                                         style="max-height: 200px;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="table-responsive mt-3">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <th>Filename:</th>
+                                                    <td>{{ img.filename }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Average Intensity:</th>
+                                                    <td>{{ img.average_intensity|round(2) }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Difference from Target:</th>
+                                                    <td>
+                                                        {% if img.difference_from_target > 1.0 %}
+                                                            <span class="badge bg-warning">{{ img.difference_from_target|round(2) }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-success">{{ img.difference_from_target|round(2) }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Status:</th>
+                                                    <td>
+                                                        {% if img.within_threshold %}
+                                                            <span class="badge bg-success">Within ±1</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger">Outside ±1</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        
+                                        <div class="d-grid">
+                                            <a href="{{ url_for('download_file', filename=img.filename) }}" class="btn btn-sm btn-outline-primary">
+                                                Download Normalized Image
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
                         
+                        <h4 class="mt-4 mb-3">All Results</h4>
                         <div class="table-responsive">
                             <table class="table table-striped table-hover">
                                 <thead>

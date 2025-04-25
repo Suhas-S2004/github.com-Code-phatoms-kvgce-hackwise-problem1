@@ -1,5 +1,6 @@
 import os
 import logging
+import zipfile
 from flask import Flask, render_template, request, flash, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -62,6 +63,26 @@ def upload_file():
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
+        # Create original images directory for comparison
+        original_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'original')
+        if not os.path.exists(original_dir):
+            os.makedirs(original_dir)
+        
+        # Extract original images for side-by-side comparison
+        original_files = []
+        try:
+            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                # Extract original images
+                for i, file_info in enumerate(zip_ref.filelist):
+                    if file_info.filename.lower().endswith('.png'):
+                        # Extract to original directory
+                        original_name = f"original_image{i+1}.png"
+                        with open(os.path.join(original_dir, original_name), 'wb') as f:
+                            f.write(zip_ref.read(file_info.filename))
+                        original_files.append(original_name)
+        except Exception as e:
+            logger.error(f"Error extracting original images: {str(e)}")
+        
         # Process the file
         normalizer = SatelliteImageNormalizer(
             zip_path=file_path,
@@ -69,14 +90,25 @@ def upload_file():
             target_intensity=target_intensity
         )
         
-        success, result, saved_paths = normalizer.process_all()
+        success, result_data, saved_paths = normalizer.process_all()
         
         if success:
+            # Add original images to the result (result_data is a dictionary)
+            if isinstance(result_data, dict):
+                result_data['original_images'] = original_files
+            else:
+                # If for some reason result is not a dict, create a new one
+                result_data = {
+                    'error': 'Could not process data properly, result was not a dictionary',
+                    'original_images': original_files
+                }
+            
             return render_template('results.html', 
-                                  stats=result, 
-                                  output_dir='output')
+                                  stats=result_data, 
+                                  output_dir='output',
+                                  original_dir='original')
         else:
-            flash(f'Error processing file: {result}')
+            flash(f'Error processing file: {result_data}')
             return redirect(request.url)
     else:
         flash('File type not allowed. Please upload a ZIP file.')
@@ -90,6 +122,11 @@ def download_file(filename):
 @app.route('/output/<path:filename>')
 def serve_image(filename):
     return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'output'),
+                               filename)
+
+@app.route('/original/<path:filename>')
+def serve_original(filename):
+    return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'original'),
                                filename)
 
 if __name__ == '__main__':
