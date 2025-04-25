@@ -1,0 +1,39 @@
+/* Additional custom styles */
+body {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+.card {
+    background-color: var(--bs-gray-800);
+    border-color: var(--bs-gray-700);
+}
+
+.card-header {
+    background-color: var(--bs-gray-700);
+}
+
+.img-thumbnail {
+    background-color: var(--bs-gray-700);
+    border-color: var(--bs-gray-600);
+}
+
+.table {
+    color: var(--bs-light);
+}
+
+/* For image preview */
+.img-preview-container {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px 0;
+}
+
+.img-preview {
+    max-width: 150px;
+    max-height: 150px;
+    object-fit: contain;
+    border: 1px solid var(--bs-gray-600);
+    border-radius: 4px;
+}

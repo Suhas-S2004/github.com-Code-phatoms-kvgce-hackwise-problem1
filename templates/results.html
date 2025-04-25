@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normalization Results - Satellite Image Brightness Normalizer</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h1 class="h3 mb-0">Normalization Results</h1>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">New Upload</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <h4 class="alert-heading">Normalization Complete!</h4>
+                            <p>Successfully normalized {{ stats.image_count }} satellite images.</p>
+                            <hr>
+                            <p class="mb-0">Global Average Intensity: <strong>{{ stats.global_average|round(2) }}</strong></p>
+                        </div>
+                        
+                        <h4 class="mt-4 mb-3">Normalized Images</h4>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Image</th>
+                                        <th>Filename</th>
+                                        <th>Average Intensity</th>
+                                        <th>Difference</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for img in stats.normalized_images %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('serve_image', filename=img.filename) }}" target="_blank">
+                                                <img src="{{ url_for('serve_image', filename=img.filename) }}" 
+                                                     alt="{{ img.filename }}" class="img-thumbnail" style="max-width: 100px;">
+                                            </a>
+                                        </td>
+                                        <td>{{ img.filename }}</td>
+                                        <td>{{ img.average_intensity|round(2) }}</td>
+                                        <td>
+                                            {% if img.difference_from_target > 1.0 %}
+                                                <span class="badge bg-warning">{{ img.difference_from_target|round(2) }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">{{ img.difference_from_target|round(2) }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('download_file', filename=img.filename) }}" class="btn btn-sm btn-outline-primary">
+                                                Download
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <a href="{{ url_for('index') }}" class="btn btn-secondary">Process Another ZIP File</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
