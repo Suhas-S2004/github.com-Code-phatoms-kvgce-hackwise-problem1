@@ -45,12 +45,23 @@ class SatelliteImageNormalizer:
                 if not image_files:
                     raise ValueError("No PNG images found in the ZIP file")
                 
+                # Check expected number of images (10 images required)
+                if len(image_files) != 10:
+                    logger.warning(f"Expected 10 PNG images, but found {len(image_files)}")
+                
                 logger.info(f"Found {len(image_files)} images in the ZIP file")
                 
                 # Extract and load each image
                 for img_file in image_files:
                     img_data = zip_ref.read(img_file)
                     img = Image.open(BytesIO(img_data)).convert('L')  # Convert to grayscale
+                    
+                    # Verify image dimensions (should be 256x256)
+                    if img.width != 256 or img.height != 256:
+                        logger.warning(f"Image {os.path.basename(img_file)} has dimensions {img.width}x{img.height}, expected 256x256")
+                        # Resize if needed
+                        img = img.resize((256, 256))
+                    
                     self.images.append((os.path.basename(img_file), img))
                 
                 logger.info(f"Successfully extracted {len(self.images)} images")
@@ -59,6 +70,9 @@ class SatelliteImageNormalizer:
         except (zipfile.BadZipFile, IOError) as e:
             logger.error(f"Error extracting images: {str(e)}")
             raise
+        except Exception as e:
+            logger.error(f"Unexpected error while extracting images: {str(e)}")
+            raise ValueError(f"Error processing ZIP file: {str(e)}")
     
     def load_images(self):
         """Load images into NumPy arrays for processing."""
@@ -107,7 +121,7 @@ class SatelliteImageNormalizer:
                 scaling_factor = 1.0
                 logger.warning(f"Image {i+1} has zero average intensity, using scaling factor of 1.0")
             
-            # Apply scaling factor
+            # Apply scaling factor (optimize by doing in-place if possible)
             normalized = img_array * scaling_factor
             
             # Ensure values are within 0-255 range
@@ -124,11 +138,20 @@ class SatelliteImageNormalizer:
             if abs(new_avg - target) > 1.0:
                 logger.warning(f"Image {i+1} - Normalization not within ±1 threshold: {new_avg} vs {target}")
                 
-                # Apply fine adjustment if needed
+                # Apply fine adjustment if needed (more accurate adjustment)
                 adjustment = target - new_avg
+                # Convert back to float32 for precise adjustment
                 normalized = np.clip(normalized.astype(np.float32) + adjustment, 0, 255).astype(np.uint8)
                 final_avg = np.mean(normalized)
                 logger.debug(f"Image {i+1} - After adjustment: {final_avg}")
+                
+                # If still not within threshold, apply a secondary proportional adjustment
+                if abs(final_avg - target) > 1.0:
+                    logger.warning(f"Image {i+1} - Secondary adjustment needed")
+                    sec_factor = target / final_avg
+                    normalized = np.clip(normalized.astype(np.float32) * sec_factor, 0, 255).astype(np.uint8)
+                    final_avg = np.mean(normalized)
+                    logger.debug(f"Image {i+1} - After secondary adjustment: {final_avg}")
             
             # Create PIL image from array
             normalized_img = Image.fromarray(normalized)
