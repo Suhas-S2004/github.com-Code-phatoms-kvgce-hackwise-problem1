@@ -1,0 +1,31 @@
+Topic - Satellite Image Brightness Normalizer:
+
+Satelite imagery is critical for applications like environmental monitoring and urban planning, but variations in brightness across images can skew analysis. The Satellite Image Brightness Normalizer challenge requires teams to develop a program that normalizes the brightness of 10 grayscale PNG images (256x256 pixels) to match a global average Intensity (e-g- 127.5 for the sample test case). The goal is to ensure each output image's average intensity is within t1 of the global average, preserving image quality for downstream processing
+
+Objective: Read a ZIP file containing 10 grayscale PNGs, normalize their brightness and output 10 normalized PNGs named normalized_image1.png to normalized_image10.png-
+
+ Approach To solve this problem, follow these steps:
+ Extract Input: Unzip satellite_images.zip to access 10 PNG files (image1.png to image10.png).
+ Load Images: Use an image processing library (e.g", PIL in Python, OpenCV, or Imagel0 in Java) to read each PNG as a grayscale array. 
+Compute Global Average: Calculate the average pixel intensity across all 10 images combined.
+
+ Normalize Images: For each image:
+
+Compute its current average intensity.
+ Apply a scaling factor to adjust pixel values so the image's average matches the global average.
+ Ensure pixel values stay within 0-255.
+
+Save Output: Write normalized images as normalized_image1.png to normalized_image10.png in the working directory.
+ 
+Validate: Check that each output image's average intensity is within +/- 1the global average.
+
+Suggested Tools:
+Python: PIL(Pillow), NumPy.
+
+Dataset:
+Source: Datasets are avalilable at https://github.com/arshad-muhammad/kvgce-hackwise.
+
+ Test Cases:
+ Sample Test Case: Provided in the repository with a global average intensity of 127.5.
+ ◦ Hidden Test Cases: TwO additional test cases (hidden1, hidden2) with different global averages (e.g-, 125.0, 130.0) will be used for evaluation but are not publicly available.
+ Each test case provides a satellite _images.zip with 10 PNGs.
